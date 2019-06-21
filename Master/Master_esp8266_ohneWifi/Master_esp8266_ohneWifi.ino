@@ -22,7 +22,24 @@
 * Connect the Wemos via USB to the PC, select the right board and COM interface in the tools menu and run the project.
 * After building and loading up to the Wemos, the serial monitor should show some log data.
 */
+//---OLED---//
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#define OLED_RESET 4
+Adafruit_SSD1306 display(OLED_RESET);
+#define NUMFLAKES 10
+#define XPOS 0
+#define YPOS 1
+#define DELTAY 2
+#define LOGO16_GLCD_HEIGHT 16 
+#define LOGO16_GLCD_WIDTH  16 
+//define on which pins is sda and scl
+const uint8_t O_dataPin = D4;//12;
+const uint8_t O_sclkPin = D3;//13;
 
+//SBNetwork
 #include <SBNetwork_config.h>
 #include <SBNetwork.h>
 
@@ -38,6 +55,9 @@ const char* password = "Martinrouterking58";
 
 const char* hostData ="http://192.168.0.143:5000/api/sendScore";
 
+boolean withWifi =false;
+boolean withDisplay =true;
+
 // Type in here the mac address of the device.
 // This must be unique within your complete network otherwise the network will not work.
 SBMacAddress deviceMac(0x01, 0x02, 0x03, 0x04, 0x05);
@@ -52,18 +72,30 @@ void setup() {
 	// Init serial connection
 	Serial.begin(19200);
   Serial.println();
-  Serial.print("connecting to ");
-  Serial.println(ssid);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+if(withDisplay){
+   //---DISPLAY INIT-----//
+ Wire.begin(O_dataPin,O_sclkPin);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.clearDisplay();
+   
+  delay(10);
+}
+  
+  if(withWifi){
+            Serial.print("connecting to ");
+            Serial.println(ssid);
+            WiFi.mode(WIFI_STA);
+            WiFi.begin(ssid, password);
+            while (WiFi.status() != WL_CONNECTED) {
+              delay(500);
+              Serial.print(".");
+            }
+            Serial.println("");
+            Serial.println("WiFi connected");
+            Serial.println("IP address: ");
+            Serial.println(WiFi.localIP());
+
   }
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
 
 	// Initialize the network device
 	networkDevice.initialize(deviceMac);
@@ -106,8 +138,12 @@ void loop() {
 
 			Serial.print("Score_b: ");
 			Serial.println(score_b,0);
-
+      if(withDisplay){     
+      draw(field,score_a, score_b);
+      }
+ if(withWifi){
       sendDataToServer(field,score_a, score_b);
+ }
 		}
 	}
 } // Loop
@@ -122,9 +158,6 @@ void sendDataToServer(float field, float score_a, int score_b){
     JSONencoder["score_a"] = score_a;
     JSONencoder["score_b"] = score_b;
 
-    
-
-   
     char JSONmessageBuffer[300];
     JSONencoder.prettyPrintTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
     Serial.println(JSONmessageBuffer);
@@ -149,4 +182,25 @@ void sendDataToServer(float field, float score_a, int score_b){
     Serial.println("Error in WiFi connection");
     
   }
+}
+
+
+void draw(float field, float score_a, int score_b){
+
+  
+  // text display tests
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.print("Field:  ");display.println(field);
+  display.setTextSize(1);
+  display.setCursor(0,8);
+  display.print("Score 1:  ");display.println(score_a);
+  display.print("Score 2:  ");display.println(score_b);
+ // display.print("Hum:   ");display.print(humidity); display.println("  % r.F.");
+ // display.print("Dewp:  ");display.print(dewpoint); display.println("  C");
+  
+  display.display();
+ 
+ display.clearDisplay();
 }

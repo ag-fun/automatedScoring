@@ -30,10 +30,10 @@
 #include <SBNetwork_config.h>
 #include <SBNetwork.h>
 
-#define US1_echoPin     7       // Ultra Sonic Echo Pin, Sensor 1
-#define US1_trigPin     8       // Ultra Sonic Trigger Pin, Sensor 1
-#define US2_echoPin     9       // Ultra Sonic Echo Pin, Sensor 2       // Change!
-#define US2_trigPin     10       // Ultra Sonic Trigger Pin, Sensor 2    // Change!
+#define US1_echoPin     2       // Ultra Sonic Echo Pin, Sensor 1
+#define US1_trigPin     3       // Ultra Sonic Trigger Pin, Sensor 1
+#define US2_echoPin     4       // Ultra Sonic Echo Pin, Sensor 2       // Change!
+#define US2_trigPin     5       // Ultra Sonic Trigger Pin, Sensor 2    // Change!
 
 static long ScoreDist[15] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140}; // in cm;
 
@@ -87,11 +87,11 @@ void loop() {
 	// Send a message to the master every 4 seconds
 	if (lastWait < millis()) {
 		float field = 1;
-		Serial.print("Field: ");
-		Serial.println(field);
+	//	Serial.print("Field: ");
+//		Serial.println(field);
 
 		float score_a = ReadScore(1);
-		Serial.print("score 1: ");
+		Serial.print("score a: ");
 		Serial.println(score_a);
 
 		float score_b = ReadScore(2);
@@ -125,7 +125,7 @@ float ReadScore(uint8_t team) {
   else {
     distance = readUS(US2_trigPin, US2_echoPin);
   }
-
+  Serial.println(distance);
   return dist2Score(distance);
 }
 
