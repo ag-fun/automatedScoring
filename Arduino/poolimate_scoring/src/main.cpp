@@ -22,8 +22,8 @@ GND   -> GND
 #define US2_echoPin     4       // Ultra Sonic Echo Pin, Sensor 2       
 #define US2_trigPin     5       // Ultra Sonic Trigger Pin, Sensor 2    
 
-static long ScoreDist[15] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140}; // in cm;
-
+static long ScoreDist[17] = {0, 3, 8, 15, 24, 32, 39, 47, 54, 62, 70, 78, 84, 92, 97,105,111}; // in cm; 105.5=1,111=0
+                              // 15 14 13  12  11  10   9  8   7   6   5   4   3   2   1 0 
 
 
 const static uint8_t RADIO_ID = 1;             // Our radio's id.
