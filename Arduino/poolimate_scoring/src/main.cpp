@@ -16,6 +16,16 @@ GND   -> GND
 #include <SPI.h>
 #include <NRFLite.h>
 
+// US Sensors 
+#define US1_echoPin     2       // Ultra Sonic Echo Pin, Sensor 1
+#define US1_trigPin     3       // Ultra Sonic Trigger Pin, Sensor 1
+#define US2_echoPin     4       // Ultra Sonic Echo Pin, Sensor 2       
+#define US2_trigPin     5       // Ultra Sonic Trigger Pin, Sensor 2    
+
+static long ScoreDist[15] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140}; // in cm;
+
+
+
 const static uint8_t RADIO_ID = 1;             // Our radio's id.
 const static uint8_t DESTINATION_RADIO_ID = 0; // Id of the radio we will transmit to.
 const static uint8_t PIN_RADIO_CE = 6;
@@ -45,21 +55,104 @@ void setup()
   //   _radio.init(RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE1MBPS, 75)
   //   _radio.init(RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE250KBPS, 0)
 
-  if (!_radio.init(RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE250KBPS))
+  if (!_radio.init(RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE250KBPS,3))
   {
     Serial.println("Cannot communicate with radio");
     while (1)
       ; // Wait here forever.
   }
+
+    // =================== Init Sensors / Fan ====================
+  // Ultra Sonic Range
+  // Sensor 1
+  pinMode(US1_trigPin, OUTPUT);
+  pinMode(US1_echoPin, INPUT);
+  // Sensor 2
+  pinMode(US2_trigPin, OUTPUT);
+  pinMode(US2_echoPin, INPUT);
+
   Serial.println("Start Client");
   _radioData.FieldNumber = RADIO_ID;
 }
 
+float dist2Score(long distance) {
+  //________________________________________________________________________________________
+  // 1) Check what distances in ScoreDist are shorter than the measurement
+  // 2.1) Return 15-i since the measurement is from top down
+  // 2.2) Return 0 because the measurement is longer than the entries
+  //________________________________________________________________________________________
+  uint16_t i = 0;
+  float score = 0;
+  while (ScoreDist[i] < distance) {
+    if (ScoreDist[i + 1] >= distance) {
+      // ScoreDist[i] is smaller equal & ScoreDist[i+1] is greater -> index resemples score
+      score = (15 - (float)i);
+    }
+    i++;
+    if (i > 14) {
+      break;
+    }
+  }
+  
+  if (score < 0) {
+    score = 0;
+  }
+  return score;
+}
+long readUS(int Trig, int Echo) {
+  //________________________________________________________________________________________
+  // 1) Read the Ultra Sonic Sensor and calculate the distance in cm
+  //________________________________________________________________________________________
+  int trigPin = Trig;
+  int echoPin = Echo;
+  long duration, distance;
+  
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(5);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  duration = pulseIn(echoPin, HIGH);
+  
+  distance = (duration / 2) / 29.1;
+
+  return distance;
+}
+
+
+
+
+float ReadScore(uint8_t team) {
+  //________________________________________________________________________________________
+  // 1) Read the distance of the required team
+  // 2) Call dist2Score to get the score
+  //________________________________________________________________________________________
+  long distance;
+
+  if (team & 1) {
+    distance = readUS(US1_trigPin, US1_echoPin);
+  }
+
+  else {
+    distance = readUS(US2_trigPin, US2_echoPin);
+  }
+  Serial.println(distance);
+  return dist2Score(distance);
+}
+
+
+
+
+
 void loop()
 {
   _radioData.OnTimeMillis = millis();
-  _radioData.ScoreA = random(0, 15);
-  _radioData.ScoreB =random(0, 15);
+  // _radioData.ScoreA = random(0, 15);
+  // _radioData.ScoreB =random(0, 15);
+  _radioData.ScoreA =  ReadScore(1);
+  _radioData.ScoreB =ReadScore(2);
+
 
   Serial.print("Sending ");
   Serial.print(_radioData.OnTimeMillis);
@@ -76,7 +169,7 @@ void loop()
   if (_radio.send(DESTINATION_RADIO_ID, &_radioData, sizeof(_radioData))) // Note how '&' must be placed in front of the variable name.
   {
     Serial.println("...Success");
-    delay(10000);
+    delay(1000);
   }
   else
   {

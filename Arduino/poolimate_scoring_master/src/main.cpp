@@ -16,9 +16,31 @@ VCC   -> No more than 3.6 volts
 GND   -> GND
 
 */
+
 #include <Arduino.h>
 #include <SPI.h>
 #include <NRFLite.h>
+
+
+//---OLED---//
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#define OLED_RESET 4
+Adafruit_SSD1306 display(OLED_RESET);
+#define NUMFLAKES 10
+#define XPOS 0
+#define YPOS 1
+#define DELTAY 2
+#define LOGO16_GLCD_HEIGHT 16 
+#define LOGO16_GLCD_WIDTH  16 
+//define on which pins is sda and scl
+const uint8_t O_dataPin = 4;//12;
+const uint8_t O_sclkPin = 3;//13;
+
+boolean withDisplay =true;
+
+
 
 const static uint8_t RADIO_ID = 0; // Our radio's id.  The transmitter will send to this id.
 const static uint8_t PIN_RADIO_CE = 6;
@@ -48,13 +70,43 @@ void setup()
   //   _radio.init(RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE1MBPS, 75)
   //   _radio.init(RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE2MBPS, 100) // THE DEFAULT
 
-  if (!_radio.init(RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE250KBPS))
+  if (!_radio.init(RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE250KBPS,3))
   {
     Serial.println("Cannot communicate with radio");
     while (1)
       ; // Wait here forever.
   }
+
+  if(withDisplay){
+    Serial.print("Display Start");
+   //---DISPLAY INIT-----//
+  //Wire.begin(O_dataPin,O_sclkPin);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.clearDisplay();
+   
+  delay(10);
+}
   // Serial.println("Start Master");
+}
+void draw(float field, int score_a, int score_b,int time){
+
+  
+  // text display tests
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.print("Field:  ");display.println(field);
+  display.setTextSize(1);
+  display.setCursor(0,8);
+  display.print("Score 1:  ");display.println(score_a);
+  display.print("Score 2:  ");display.println(score_b);
+  display.print("timestamp:  ");display.println(time);
+ // display.print("Hum:   ");display.print(humidity); display.println("  % r.F.");
+ // display.print("Dewp:  ");display.print(dewpoint); display.println("  C");
+  
+  display.display();
+ 
+ display.clearDisplay();
 }
 
 void loop()
@@ -64,7 +116,7 @@ void loop()
   {
     _radio.readData(&_radioData); // Note how '&' must be placed in front of the variable name.
 
-    String msg = "Radio ";
+    String msg = "Field ";
     msg += _radioData.FieldNumber;
     msg += ", ";
     msg += _radioData.OnTimeMillis;
@@ -80,4 +132,9 @@ void loop()
 
     Serial.println(msg);
   }
+
+   if(withDisplay){     
+      draw(_radioData.FieldNumber ,_radioData.ScoreA, _radioData.ScoreB, _radioData.OnTimeMillis);
+      }
+
 }
